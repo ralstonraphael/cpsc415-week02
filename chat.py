@@ -57,6 +57,7 @@ def ask_http(question, model, system, max_tokens):
         "tokens_out": usage.get("completion_tokens", 0),
         "finish_reason": choice.get("finish_reason"),
         "record": None,
+        "cost": usage.get("cost"),
     }
 
 
@@ -89,6 +90,7 @@ def ask_cli(question, model, system, max_tokens):
         "tokens_out": usage.get("output_tokens", 0),
         "finish_reason": data.get("stop_reason"),
         "record": data.get("session_id"),
+        "cost": data.get("total_cost_usd"),
     }
 
 
@@ -111,6 +113,8 @@ def main(argv):
     print(out["answer"].strip() or "(empty answer)")
     line = "model=%s tokens in=%d out=%d finish=%s" % (
         out["model"], out["tokens_in"], out["tokens_out"], out["finish_reason"])
+    if out["cost"] is not None:
+        line += " cost=$%.5f" % out["cost"]
     if out["record"]:
         line += " session=%s" % out["record"]
     print(line)

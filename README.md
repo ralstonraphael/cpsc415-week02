@@ -1,45 +1,53 @@
-# Artifact-chain template
+# One-question chat client
 
-Starting point for major project submissions in CPSC 415 (AI Integration, Trinity College). Click **Use this template** on GitHub to create your own repository from it. Do not fork.
+CPSC 415 Week 2 lab. `chat.py` sends one question to a model, prints the answer, then a final line with the model name and token counts. Python 3, standard library only. Built with a coding agent (Claude Code), as the course requires; the commits carry `Co-Authored-By` trailers.
 
-The course follows Anthropic's [AI-Native SDLC Playbook](https://claude.com/blog/the-ai-native-sdlc-playbook): every stage of the work leaves a short, version-controlled artifact. The agent writes most of the code. You decide what gets built, steer, verify, and explain every choice. These files are how you prove you understood what the agent built.
+Submitted after the September 28 deadline.
 
-## Early labs
+## How to run it
 
-Week 1 uses the minimal repository described in the course handout. Later introductory labs complete only the stages assigned so far. This template describes the full chain for team projects and the final portfolio; it does not require unintroduced artifacts in Week 1. Project languages are chosen and justified, with one separate guided exercise in an unfamiliar language.
-
-## The chain
-
-| Stage | File | Written by | Approved by |
-|---|---|---|---|
-| Plan | `intent/<name>.md` | The agent, after interviewing you | You |
-| Design | `spec.md` | The agent, from the approved intent | You, against the intent |
-| Build | `plan.md`, then code on a branch | The agent | You, before any code |
-| Test | tests, lint, CI | The agent | You confirm the loop actually ran |
-| Deploy | a pull request reviewed against `REVIEW.md` | A separate reviewing agent | You merge |
-| Maintain | a new `intent/<name>.md` | Triggered by a bug, a ticket, or a model change | You triage |
-
-`CLAUDE.md` and `REVIEW.md` travel with the repo and are graded artifacts.
-
-## Rules that are graded
-
-- Intent and spec exist before code. Plan is approved before implementation. The commit history shows it.
-- One pull request per feature, from a branch, reviewed before merge. Do not commit to `main` directly after the first commit.
-- `spec.md` states the **language** and the **model** for each component and why.
-- `ANNOTATION.md` answers the four questions for the finished project.
-- No secrets in the repo. `.claude/settings.local.json` and `.env` are ignored; the `.example` file shows the shape.
-
-## Submitting
-
-Tag the commit you are submitting and put the repository URL plus the tag on Moodle:
+**`http` (default):** any OpenAI-compatible endpoint, such as OpenRouter or a local Ollama.
 
 ```
-git tag tp1-submitted
-git push origin tp1-submitted
+export CHAT_BASE_URL=https://openrouter.ai/api/v1   # the default
+export CHAT_MODEL=minimax/minimax-m3
+export OPENROUTER_API_KEY=...                       # from the environment, never a file
+python3 chat.py "In one sentence, what is a context window?"
 ```
 
-Tags the course uses: `intent-spec`, `tp1-submitted`, `tp2-submitted`, `portfolio-final`.
+For Ollama: `CHAT_BASE_URL=http://localhost:11434/v1`, any string as the key, and `CHAT_MODEL=qwen3.5:9b`.
 
-## Running the agent
+**`claude-cli`:** the `claude` tool in headless mode, on the Claude login already on this machine. No key.
 
-Copy `.claude/settings.local.json.example` to `.claude/settings.local.json` and fill in your OpenRouter key and model slugs, or use the `orclaude` launcher from the [course repository](https://github.com/kousen/ai-integration-course/tree/main/scripts).
+```
+export CHAT_BACKEND=claude-cli
+CHAT_MODEL=claude-haiku-4-5-20251001 python3 chat.py "In one sentence, what is a context window?"
+```
+
+Optional: `CHAT_SYSTEM` replaces the system message, `CHAT_MAX_TOKENS` sets the output limit (default 500).
+
+## Two corrections to the intent draft
+
+Both are in the commit "Correct and approve intent for the chat client".
+
+1. **The draft said I already had an OpenRouter key with credit.** I don't. I have a Claude subscription. So the program got a second route, `CHAT_BACKEND=claude-cli`, and OpenRouter stays the default for when a key exists.
+2. **The draft's success test was matching the OpenRouter Activity page.** Without an account that page doesn't exist for me. The independent record is the session log the `claude` tool saves for each request, which the program never reads. It matched exactly (see `CHECKS.md`).
+
+## One line I can explain
+
+```python
+"messages": [
+    {"role": "system", "content": system},
+    {"role": "user", "content": question},
+],
+```
+
+This is where the request is built, in `ask_http`. The model gets two messages: the system message sets how it should behave, and the user message is the question. Changing only the system message to "You are a pirate" changed the answer's style while the question stayed the same, which is how I checked that this is really what the model reads.
+
+## Two models compared
+
+Haiku 4.5 and Sonnet 5 gave near-identical one-sentence answers. Sonnet used a third of Haiku's output tokens (38 against 116) but cost more, $0.00177 against $0.00113, at the list prices the `claude` tool reports. These are observed costs for one question, not a benchmark, and the subscription does not bill per call.
+
+## Local model
+
+`qwen3.5:9b` through Ollama, same code with only `CHAT_BASE_URL` and `CHAT_MODEL` changed. It spent most of its output on hidden reasoning: with an 800-token limit it was cut off mid-sentence, and with 4,000 it used 959 output tokens for a one-sentence answer. Its input was only 34 tokens, against about 550 through the `claude` tool, which adds its own overhead.
